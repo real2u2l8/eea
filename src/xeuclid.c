@@ -7,67 +7,54 @@
 #include <stdio.h>
 #include <openssl/bn.h>
 
-BIGNUM *XEuclid(BIGNUM *x, BIGNUM *y, const BIGNUM *a, const BIGNUM *b){
-	const char *str_0 = "0";
-	const char *str_1 = "1";
-    if (b == 0){
-        BN_dec2bn(&x,str_0);
-        BN_dec2bn(&y,str_1);
-
-        return a;
-    }
+BIGNUM *XEuclid(BIGNUM *x, BIGNUM *y, const BIGNUM *a, const BIGNUM *b) {
 	BN_CTX *ctx = BN_CTX_new();
-	BIGNUM *tmp = BN_new();
-	BIGNUM *gcd = BN_new();
-	BIGNUM *dv = BN_new();
-	BIGNUM *rem = BN_new();
+	BIGNUM *tmp = BN_new(); //a -> r_1
+    BIGNUM *r1 = BN_new(); //a -> r_1
+    BIGNUM *q = BN_new(); 
+    BIGNUM *r = BN_new();   //r
+    BIGNUM *r2 = BN_new();  //b -> r_2
+    BIGNUM *result_mul = BN_new();
+    BIGNUM *s_1 = BN_new();
+    BIGNUM *t_1 = BN_new();
+    BIGNUM *s_2 = BN_new();
+    BIGNUM *t_2 = BN_new();
+    BIGNUM *s = BN_new();
+    BIGNUM *t = BN_new();
+    BN_dec2bn(&s_1,"1");
+    BN_dec2bn(&t_1,"0");
+    BN_dec2bn(&s_2, "0");
+    BN_dec2bn(&t_2, "1");
+    
+    if ("0" == BN_bn2dec(b)){
+        BIGNUM *gcd = BN_new();
+        BN_copy(gcd, a);
+        return gcd;
+    } 
+    
 
-	BN_div(dv, rem, a, b, ctx);
-    gcd = XEuclid(b, rem, x, y);
-    tmp = y;
-	BIGNUM *result_mul = BN_new();
-	BIGNUM *result_sub = BN_new();
-	BN_div(dv, rem, a, b, ctx);
-	BN_mul(result_mul, dv, y, ctx);
-	BN_sub(result_sub, x, result_mul);
-	
-    y = result_mul; 
-    x = tmp;
-    return gcd;
-}
+    BN_copy(r2, b); // new_r = b; 
+    BN_copy(r1, a); //  tmp = a
+    
+    while (BN_is_zero(r2) != 1) {
+        BN_div(q, r, r1, r2, ctx); //quotient = r / new_r;
+        BN_mul(result_mul, q, s_2, ctx);
+        BN_sub(s, s_1, result_mul); //t 값
+        BN_mul(result_mul, q, t_2, ctx);
+        BN_sub(t, t_1, result_mul); // s값
 
-BIGNUM *extended_gcd(BIGNUM *x, BIGNUM *y, const BIGNUM *a, const BIGNUM *b) {
-	BN_CTX *ctx = BN_CTX_new();
-	BIGNUM *tmp = BN_new();
-	BIGNUM *gcd = BN_new();
-	BIGNUM *dv = BN_new();
-	BIGNUM *rem = BN_new();
-    x = 1;
-    y = 0;
+        BN_copy(r1, r2);
+        BN_copy(r2, r);
 
-    if (0 == b) return a;
+        BN_copy(s_1, s_2);
+        BN_copy(s_2, s);
 
-    int new_x = 0;
-    int new_y = 1;
-    int new_r = b;
-    int r = a;
-    int quotient, tmp;
-    while (new_r) {
-        quotient = r / new_r;
-
-        tmp = r;
-        r = new_r;
-        new_r = tmp - quotient * new_r;
-
-        tmp = x;
-        x = new_x;
-        new_x = tmp - quotient * new_x;
-
-        tmp = y;
-        y = new_y;
-        new_y = tmp - quotient * new_y;
+        BN_copy(t_1, t_2);
+        BN_copy(t_2, t);
     }
-    return r;
+    BN_copy(x, s_1);
+    BN_copy(y, t_1);
+    return r1;
 }
 
 void printBN(char *msg, BIGNUM * a)
@@ -99,7 +86,7 @@ int main (int argc, char *argv[]){
     printBN("x = ", x);
     printBN("y = ", y);
   
-	printf("%s*(%s) + %s*(%s) = %s\\n",
+	printf("%s*(%s) + %s*(%s) = %s\n",
 										BN_bn2dec(a),
 										BN_bn2dec(x),
 										BN_bn2dec(b),
